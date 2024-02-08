@@ -1,24 +1,42 @@
 const {response} = require('express'); 
 const Evento = require('../models/Evento');
 
+const {z} = require('zod');
+
+const EventoSchema = z.object({
+    date: z.any(),
+    ventas: z.number(),
+    compras: z.number(),
+    efectivo:  z.number(),
+});
+
 
 const getEventos = async(req, res = response) => {
 
-    const eventos = await Evento.find().populate('user', 'name');
-    
-    res.status(201).json({
-        ok: true, 
-        eventos
-    })
+    try {
+        const eventos = await Evento.find().populate('user', 'name');
+        
+        res.status(201).json({
+            ok: true, 
+            eventos
+        })
+
+    } catch(error) {
+        console.log(error)
+        res.status(500).json({
+            ok: false, 
+            msg: 'Hable con el administrador'
+        })
+    }
 }
 
 const crearEventos = async(req, res = response) => {
-
-    const evento = new Evento(req.body); 
-
+    // const evento = new Evento(req.body); 
     try {
-        evento.user = req.uid
-        const eventoGuardado = await evento.save();
+        const evento = EventoSchema.parse(req.body)
+        const eventoDB = new Evento(req.body)
+        eventoDB.user = req.uid
+        const eventoGuardado = await eventoDB.save();
 
         res.status(201).json({
             ok: true, 
@@ -27,8 +45,9 @@ const crearEventos = async(req, res = response) => {
         
     } catch(error) {
         console.log(error);
-        res.status(500).json({
+        res.status(400).json({
             ok: false, 
+            error: error.errors,
             msg: 'Hable con el administrador'
         })
     }
